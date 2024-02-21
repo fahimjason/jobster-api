@@ -17,6 +17,7 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - REACT_APP_URL=http://localhost:5002/api/v1
+      - JAEGER_URL=http://jaeger:4318
     depends_on:
       - mongodb
       - backend
@@ -54,6 +55,17 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
+
+  # Jaeger
+  ## http://jaeger:4318
+  jaeger:
+    container_name: jaeger
+    image: jaegertracing/all-in-one:${JAEGER_VERSION:-latest}
+    ports:
+      - "16686:16686"
+      - "4319:4318"
+    environment:
+      - LOG_LEVEL=debu
 
 # Docker Network
 ## docker network create microservices
