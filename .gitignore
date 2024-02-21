@@ -129,3 +129,5 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+# Ignore node_modules directory in all directories
+**/node_modules/
