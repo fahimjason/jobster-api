@@ -131,3 +131,4 @@ dist
 .pnp.*
 # Ignore node_modules directory in all directories
 **/node_modules/
+data
