@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 5000
 
 # Start the Node.js app
-CMD [ "sh", "-c", "node populate.js && npm start" ]
+CMD [ "sh", "-c", "npm start" ]

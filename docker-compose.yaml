@@ -16,7 +16,7 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_URL=http://localhost:5002/api/v1
+      - REACT_APP_URL=http://54.227.58.190:5002/api/v1
       - JAEGER_URL=http://jaeger:4318
     depends_on:
       - mongodb
@@ -37,6 +37,7 @@ services:
       - ./backend:/app
       - /app/node_modules
     environment:
+      NODE_OPTIONS: "--require ./tracer.js"
       MONGO_URI: mongodb://admin:password@mongodb:27017/hackathon
       JWT_SECRET: serect
       JWT_LIFETIME: 30d
@@ -65,7 +66,18 @@ services:
       - "16686:16686"
       - "4319:4318"
     environment:
-      - LOG_LEVEL=debu
+      - LOG_LEVEL=debug
+
+  # Prometheus 
+  # http://rometheus:9090
+  prometheus:
+    image: prom/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+    ports:
+      - 9090:9090  
 
 # Docker Network
 ## docker network create microservices

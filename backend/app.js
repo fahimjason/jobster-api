@@ -13,6 +13,13 @@ const path = require('path');
 const helmet = require('helmet');
 const xss = require('xss-clean');
 
+// Configure OpenTelemetry
+const tracer = require('./tracer');
+const meter = tracer('jobster-api');
+
+// Configure Prometheus
+// const { context, trace } = require('@opentelemetry/api');
+
 const express = require('express');
 const app = express();
 
@@ -30,6 +37,21 @@ const errorHandlerMiddleware = require('./middleware/error-handler');
 
 app.set('trust proxy', 1);
 
+const calls = meter.createHistogram('http-calls');
+
+app.use((req,res,next)=>{
+    const startTime = Date.now();
+    req.on('end',()=>{
+        const endTime = Date.now();
+        calls.record(endTime-startTime,{
+            route: req.route?.path,
+            status: res.statusCode,
+            method: req.method
+        })
+    })
+    next();
+});
+
 app.use(express.static(path.resolve(__dirname, './client/build')));
 app.use(express.json());
 app.use(helmet());
@@ -38,6 +60,19 @@ app.use(xss());
 
 // enable CORS
 app.use(cors());
+
+// app.use((req, res, next) => {
+//     const tracer = tracerProvider.getTracer('express-tracer');
+//     const span = tracer.startSpan('signup-endpoint');
+  
+//     // Add custom attributes or log additional information if needed
+//     span.setAttribute('payload', req.body);
+  
+//     // Pass the span to the request object for use in the route handler
+//     context.with(trace.setSpan(context.active(), span), () => {
+//         next();
+//     });
+// });
 
 app.get('/', (req, res) => {
     res.send('<h1>Jobster API</h1><a href="/api-docs">Documentation</a>');
