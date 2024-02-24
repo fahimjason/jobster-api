@@ -21,6 +21,7 @@ services:
     depends_on:
       - mongodb
       - backend
+    restart: always
 
   # Backend ======================
   backend:
@@ -43,6 +44,7 @@ services:
       JWT_LIFETIME: 30d
     depends_on:
       - mongodb
+    restart: always
 
   # Database ====================
   mongodb:
@@ -56,6 +58,7 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: always
 
   # Jaeger
   ## http://jaeger:4318
@@ -67,6 +70,7 @@ services:
       - "4319:4318"
     environment:
       - LOG_LEVEL=debug
+    restart: always
 
   # Prometheus 
   # http://rometheus:9090
@@ -78,6 +82,7 @@ services:
       - ./prometheus/:/etc/prometheus/
     ports:
       - 9090:9090  
+    restart: always
 
 # Docker Network
 ## docker network create microservices

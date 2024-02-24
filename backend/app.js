@@ -16,9 +16,7 @@ const xss = require('xss-clean');
 // Configure OpenTelemetry
 const tracer = require('./tracer');
 const meter = tracer('jobster-api');
-
-// Configure Prometheus
-// const { context, trace } = require('@opentelemetry/api');
+const { context, trace } = require('@opentelemetry/api');
 
 const express = require('express');
 const app = express();
@@ -52,6 +50,16 @@ app.use((req,res,next)=>{
     next();
 });
 
+// app.use((req, res, next) => {
+//     const tracer = trace.getTracer('express-tracer');
+//     const span = tracer.startSpan('signup-endpoint');
+  
+//     // Pass the span to the request object for use in the route handler
+//     context.with(trace.setSpan(context.active(), span), () => {
+//       next();
+//     });
+// });
+
 app.use(express.static(path.resolve(__dirname, './client/build')));
 app.use(express.json());
 app.use(helmet());
@@ -61,25 +69,11 @@ app.use(xss());
 // enable CORS
 app.use(cors());
 
-// app.use((req, res, next) => {
-//     const tracer = tracerProvider.getTracer('express-tracer');
-//     const span = tracer.startSpan('signup-endpoint');
-  
-//     // Add custom attributes or log additional information if needed
-//     span.setAttribute('payload', req.body);
-  
-//     // Pass the span to the request object for use in the route handler
-//     context.with(trace.setSpan(context.active(), span), () => {
-//         next();
-//     });
-// });
-
 app.get('/', (req, res) => {
     res.send('<h1>Jobster API</h1><a href="/api-docs">Documentation</a>');
 });
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
-// routes
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/jobs', authenticateUser, jobRouter);
 

@@ -4,7 +4,9 @@ const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-proto'
 const { PrometheusExporter } = require('@opentelemetry/exporter-prometheus');
 const { MeterProvider } = require('@opentelemetry/sdk-metrics');
 const { Resource } = require('@opentelemetry/resources');
-const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
+const { SemanticResourceAttributes, SemanticAttributes } = require('@opentelemetry/semantic-conventions');
+const { ExpressInstrumentation, ExpressLayerType } = require('@opentelemetry/instrumentation-express');
+const { HttpInstrumentation } = require("@opentelemetry/instrumentation-http");
 // const { ParentBasedSampler } = require('@opentelemetry/sdk-trace-base');
 
 
@@ -33,11 +35,24 @@ function tracer(serviceName) {
     const sdk = new NodeSDK({
         traceExporter,
         serviceName: serviceName,
-        instrumentations: [getNodeAutoInstrumentations({
-            "@opentelemetry/instrumentation-fs": {
-                enabled: false,
-            }
-        })]
+        instrumentations: [
+            // getNodeAutoInstrumentations({
+            //     "@opentelemetry/instrumentation-fs": {
+            //         enabled: false,
+            //     }
+            // }),
+            // new HttpInstrumentation(),
+            new ExpressInstrumentation(
+                {
+                    requestHook: function (span, info) {
+                        if (info.layerType === ExpressLayerType.REQUEST_HANDLER) {
+                            span.setAttribute(SemanticAttributes.HTTP_METHOD, info.request.method);
+                            span.setAttribute(SemanticAttributes.HTTP_URL, info.request.baseUrl);
+                        }
+                    },
+                }
+            )
+    ]
     });
 
     sdk.start();
