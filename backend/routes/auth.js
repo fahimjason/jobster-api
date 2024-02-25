@@ -13,10 +13,11 @@ const apiLimiter = rateLimiter({
     },
 });
 
+const { StartTrace } = require('../middleware/custom-tracer');
 const { login, register, updateUser } = require('../controllers/auth');
 
 router.post('/register', apiLimiter, register);
-router.post('/login', apiLimiter, login);
+router.post('/login', apiLimiter, StartTrace('tracer-user-login'), login);
 router.patch('/updateUser', authenticateUser, testUser, updateUser);
 
 module.exports = router;

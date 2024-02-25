@@ -4,20 +4,11 @@ const { trace } = require('@opentelemetry/api');
 const User = require('../models/User');
 const {customTracer, getActiveSpan} = require('../middleware/custom-tracer');
 
-const customSpan = customTracer('tracer-user-authentication');
+const customSpan = customTracer('tracer-user-login');
 
 const register = async (req, res) => {
-    customSpan.startActiveSpan('register-user', async (span) => {
-
-        // const parentSpan = trace.getSpan(context.active());
-
-        // const tracer = trace.getTracer('express-tracer');    
-        // const childSpan = tracer.startSpan('db-call-and-user-validation', { parent: parentSpan });
-
         const user = await User.create({ ...req.body });
         const token = user.createJWT();
-
-        // childSpan.end();
 
         res.status(StatusCodes.CREATED).json({
             user: {
@@ -28,73 +19,20 @@ const register = async (req, res) => {
                 token,
             },
         });
-
-        // const activeSpan = getActiveSpan();
-        getActiveSpan().setAttribute('userId', req.body.email);
-        
-        // parentSpan.end();
-        // const traceId = parentSpan.spanContext().traceId;
-        // console.log(traceId, 200);
-        span.end();
-    });
 };
 
 const login = async (req, res) => {
     const { email, password } = req.body;
 
-    // try {
-    //     const span = customSpan.startSpan('user-login');
+    const parentSpan = customSpan.startSpan('user-login');
 
-    //     if (!email || !password) {
-    //         throw new BadRequestError('Please provide email and password');
-    //     }
-    
-    //     try {
-    //         const childSpan = customSpan.startSpan('db-call-and-user-validation');
-    //         const user = await User.findOne({ email });
-    
-    //         if (!user) {
-    //             throw new UnauthenticatedError('Invalid Credentials');
-    //         }
-    
-    //         const isPasswordCorrect = await user.comparePassword(password);
-    
-    //         if (!isPasswordCorrect) {
-    //             throw new UnauthenticatedError('Invalid Credentials');
-    //         }
-    
-    //         const token = user.createJWT();
-    
-    //         res.status(StatusCodes.OK).json({
-    //             user: {
-    //                 email: user.email,
-    //                 lastName: user.lastName,
-    //                 location: user.location,
-    //                 name: user.name,
-    //                 token,
-    //             },
-    //         });
-    
-    //         childSpan.end();
-
-    //     // const activeSpan = trace.getActiveSpan();
-    //     getActiveSpan().setAttribute('userId', req.body.email);
-    //     } catch (e) {
-    //         // const activeSpan = trace.getActiveSpan();
-    //         getActiveSpan().setAttribute('error', e.message);
-    //     }
-    
-    //     span.end();
-    // } catch (e) {
-    //     // Handle errors here
-    //     console.log(e.message)
-    // }
-    customSpan.startActiveSpan('user-login', async (span) => {
+    // customSpan.startActiveSpan('', async (span) => {
         if (!email || !password) {
             throw new BadRequestError('Please provide email and password');
         }
-        
-        customSpan.startActiveSpan('user-validation', async (span) => {
+        // const tracer = trace.getTracer('init')
+        const childSpan = customSpan.startSpan('db-call-and-user-validation', { parent: parentSpan });
+        // customSpan.startActiveSpan('', async (span) => {
             try{
                 const user = await User.findOne({ email });
     
@@ -121,18 +59,19 @@ const login = async (req, res) => {
                         token,
                     },
                 });
+
+                childSpan.end();
             } catch(e) {
-                const activeSpan = trace.getActiveSpan();
-                activeSpan?.setAttribute('error.message', e.message);
+                const activeSpan = trace.getSpan(api.context.active());
+                activeSpan?.recordException(e);
             }
-            span.end();
-        });
+        // });
 
         const activeSpan = trace.getActiveSpan();
         activeSpan?.setAttribute('userId', req.body.email);
 
-        span.end();
-    });
+        parentSpan.end();
+    // });
 };
 
 const updateUser = async (req, res) => {

@@ -14,9 +14,8 @@ const helmet = require('helmet');
 const xss = require('xss-clean');
 
 // Configure OpenTelemetry
-const tracer = require('./tracer');
-const meter = tracer('jobster-api');
-const { context, trace } = require('@opentelemetry/api');
+// const tracer = require('./opentelemetry');
+// const tracerProvider = tracer('jobster-api');
 
 const express = require('express');
 const app = express();
@@ -35,29 +34,19 @@ const errorHandlerMiddleware = require('./middleware/error-handler');
 
 app.set('trust proxy', 1);
 
-const calls = meter.createHistogram('http-calls');
+// const calls = meter.createHistogram('http-calls');
 
-app.use((req,res,next)=>{
-    const startTime = Date.now();
-    req.on('end',()=>{
-        const endTime = Date.now();
-        calls.record(endTime-startTime,{
-            route: req.route?.path,
-            status: res.statusCode,
-            method: req.method
-        })
-    })
-    next();
-});
-
-// app.use((req, res, next) => {
-//     const tracer = trace.getTracer('express-tracer');
-//     const span = tracer.startSpan('signup-endpoint');
-  
-//     // Pass the span to the request object for use in the route handler
-//     context.with(trace.setSpan(context.active(), span), () => {
-//       next();
-//     });
+// app.use((req,res,next)=>{
+//     const startTime = Date.now();
+//     req.on('end',()=>{
+//         const endTime = Date.now();
+//         calls.record(endTime-startTime,{
+//             route: req.route?.path,
+//             status: res.statusCode,
+//             method: req.method
+//         })
+//     })
+//     next();
 // });
 
 app.use(express.static(path.resolve(__dirname, './client/build')));
@@ -76,10 +65,6 @@ app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/jobs', authenticateUser, jobRouter);
-
-// app.get('*', (req, res) => {
-//     res.sendFile(path.resolve(__dirname, './client/build', 'index.html'));
-// });
 
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);

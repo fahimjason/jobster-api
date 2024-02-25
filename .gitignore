@@ -132,3 +132,5 @@ dist
 # Ignore node_modules directory in all directories
 **/node_modules/
 data
+init-scripts
+postgres-db
