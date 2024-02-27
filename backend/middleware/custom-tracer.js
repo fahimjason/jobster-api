@@ -1,35 +1,30 @@
-const { trace, context } = require('@opentelemetry/api');
+const { trace, context, SpanStatusCode } = require('@opentelemetry/api');
 
-// Configure OpenTelemetry
-const tracer = require('../opentelemetry');
-const tracerProvider = tracer('jobster-api');
-// let rootTracer;
+const createTracer = (tracerName) => {
+    const tracer = trace.getTracer(tracerName); 
 
-// const createTracer = (name) => {
-//     tracerProvider = tracerProvider(name);
-// }
+    return tracer;
+}
 
-const StartTrace = (traceName) => {
-   return (req, res, next) => {
-        const tracer = tracerProvider.getTracer('express-tracer');
-        const span = tracer.startSpan('signup-endpoint');
-      
-        // Add custom attributes or log additional information if needed
-        span.setAttribute('user', 'user made');
-      
-        // Pass the span to the request object for use in the route handler
-        context.with(trace.setSpan(context.active(), span), () => {
-          next();
-        });
+const createSpan = (spanName, tracer, parentSpan) => {
+    if(parentSpan) {
+        // Start another span. If already started a span, so that'll  
+        // be the parent span, and this will be a child span.
+        const ctx = trace.setSpan(context.active(), parentSpan);
+        const span = tracer.startSpan(spanName, undefined, ctx);
+
+        return span;
     }
+
+    const span = tracer.startSpan(spanName);
+    return span;
 }
 
-const customTracer = (name) => {
-    return trace.getTracer(name);
+const tracingError = (span, message) => {
+    span.setStatus({code: SpanStatusCode.ERROR, message: message});
+    span.end();
+
+    return;
 }
 
-const getActiveSpan = () => {
-    return trace.getActiveSpan();
-}
-
-module.exports = {tracerProvider, StartTrace, customTracer, getActiveSpan}; 
+module.exports = { createTracer, createSpan, tracingError }

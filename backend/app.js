@@ -13,9 +13,9 @@ const path = require('path');
 const helmet = require('helmet');
 const xss = require('xss-clean');
 
-// Configure OpenTelemetry
-// const tracer = require('./opentelemetry');
-// const tracerProvider = tracer('jobster-api');
+// tracer
+const tracer = require('./tracer');
+tracer('auth-service');
 
 const express = require('express');
 const app = express();

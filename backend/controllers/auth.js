@@ -1,10 +1,9 @@
 const { StatusCodes } = require('http-status-codes');
 const { BadRequestError, UnauthenticatedError } = require('../errors');
-const { trace } = require('@opentelemetry/api');
 const User = require('../models/User');
-const {customTracer, getActiveSpan} = require('../middleware/custom-tracer');
 
-const customSpan = customTracer('tracer-user-login');
+// tracing
+const { createTracer, createSpan, tracingError } = require('../middleware/custom-tracer');
 
 const register = async (req, res) => {
         const user = await User.create({ ...req.body });
@@ -22,56 +21,50 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
+    const tracer = createTracer('User-AUthentication');
+    const span = createSpan('/login', tracer);
+
     const { email, password } = req.body;
 
-    const parentSpan = customSpan.startSpan('user-login');
+    if (!email || !password) {
+        tracingError(span, 'Please provide email and password');
+        throw new BadRequestError('Please provide email and password');
+    }
 
-    // customSpan.startActiveSpan('', async (span) => {
-        if (!email || !password) {
-            throw new BadRequestError('Please provide email and password');
-        }
-        // const tracer = trace.getTracer('init')
-        const childSpan = customSpan.startSpan('db-call-and-user-validation', { parent: parentSpan });
-        // customSpan.startActiveSpan('', async (span) => {
-            try{
-                const user = await User.findOne({ email });
-    
-                if (!user) {
-                    throw new UnauthenticatedError('Invalid Credentials');
-                }
-            
-                const isPasswordCorrect = await user.comparePassword(password);
-            
-                if (!isPasswordCorrect) {
-                    throw new UnauthenticatedError('Invalid Credentials');
-                }
-            
-                // compare password
-                const token = user.createJWT();
+    const childSpan = createSpan('db-call-and-token-creation', tracer, span);
+    const user = await User.findOne({ email });
 
+    if (!user) {
+        tracingError(childSpan, 'Invalid Credentials');
+        throw new UnauthenticatedError('Invalid Credentials');
+    }
 
-                res.status(StatusCodes.OK).json({
-                    user: {
-                        email: user.email,
-                        lastName: user.lastName,
-                        location: user.location,
-                        name: user.name,
-                        token,
-                    },
-                });
+    const isPasswordCorrect = await user.comparePassword(password);
 
-                childSpan.end();
-            } catch(e) {
-                const activeSpan = trace.getSpan(api.context.active());
-                activeSpan?.recordException(e);
-            }
-        // });
+    if (!isPasswordCorrect) {
+        tracingError(childSpan, 'Invalid Credentials');
+        throw new UnauthenticatedError('Invalid Credentials');
+    }
 
-        const activeSpan = trace.getActiveSpan();
-        activeSpan?.setAttribute('userId', req.body.email);
+    // compare password
+    const token = user.createJWT();
 
-        parentSpan.end();
-    // });
+    res.status(StatusCodes.OK).json({
+        user: {
+            email: user.email,
+            lastName: user.lastName,
+            location: user.location,
+            name: user.name,
+            token,
+        },
+    });
+
+    childSpan.end();
+
+    // Set attributes to the span.
+    span.setAttribute('userId', email);
+
+    span.end();
 };
 
 const updateUser = async (req, res) => {
