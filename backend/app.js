@@ -13,6 +13,10 @@ const path = require('path');
 const helmet = require('helmet');
 const xss = require('xss-clean');
 
+// tracer
+const tracer = require('./tracer');
+tracer('auth-service');
+
 const express = require('express');
 const app = express();
 
